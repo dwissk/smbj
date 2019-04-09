@@ -244,7 +244,10 @@ public class DFSPathResolver implements PathResolver {
             return step13(session, state, result);
         }
         if (state.isDFSPath) {
-            return step14(session, state, result);
+            state.isDFSPath = false;
+            state.hostName = null;
+            return step1(session, state);
+            //return step14(session, state, result);
         }
 
         return step12(state);
