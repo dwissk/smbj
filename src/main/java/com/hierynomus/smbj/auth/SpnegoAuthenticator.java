@@ -18,10 +18,10 @@ package com.hierynomus.smbj.auth;
 import com.hierynomus.mssmb2.SMB2Header;
 import com.hierynomus.protocol.commons.ByteArrayUtils;
 import com.hierynomus.protocol.transport.TransportException;
-import com.hierynomus.security.SecurityProvider;
 import com.hierynomus.smbj.GSSContextConfig;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.session.Session;
+import com.sun.security.jgss.InquireType;
 import org.ietf.jgss.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +32,6 @@ import java.security.Key;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
-import java.util.Random;
 
 
 public class SpnegoAuthenticator implements Authenticator {
@@ -93,7 +92,13 @@ public class SpnegoAuthenticator implements Authenticator {
 
             AuthenticateResponse response = new AuthenticateResponse(newToken);
             if (gssContext.isEstablished()) {
-                Key key = ExtendedGSSContext.krb5GetSessionKey(gssContext);
+                Key key;
+                try {
+                    key = ExtendedGSSContext.krb5GetSessionKey(gssContext);
+                } catch (ExceptionInInitializerError | NoClassDefFoundError ex) {
+                    com.sun.security.jgss.ExtendedGSSContext e = (com.sun.security.jgss.ExtendedGSSContext) gssContext;
+                    key = (Key) e.inquireSecContext(InquireType.KRB5_GET_SESSION_KEY);
+                }
                 if (key != null) {
                     // if a session key was negotiated, save it.
                     response.setSigningKey(adjustSessionKeyLength(key.getEncoded()));
